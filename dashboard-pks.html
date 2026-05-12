@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard PKS — Direktorat Cegah Tangkal BPOM</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111827;min-height:100vh}
+
+.header{background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;gap:12px;flex-wrap:wrap}
+.header-title{font-size:15px;font-weight:600;color:#111827}
+.header-sub{font-size:12px;color:#6b7280;margin-top:2px}
+.header-badge{background:#1d4ed8;color:#fff;font-size:11px;padding:4px 10px;border-radius:99px;font-weight:500}
+.last-update{font-size:12px;color:#9ca3af}
+
+.main{max-width:1140px;margin:0 auto;padding:24px 20px}
+
+.loading{text-align:center;padding:80px 24px;color:#6b7280}
+.spinner{width:32px;height:32px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px;color:#991b1b;font-size:13px;line-height:1.7}
+.error-box code{background:#fee2e2;padding:2px 6px;border-radius:4px;font-size:12px}
+
+.alert{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#78350f;display:flex;align-items:flex-start;gap:10px}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:20px}
+.metric{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px}
+.metric-label{font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;line-height:1.4}
+.metric-value{font-size:28px;font-weight:700;color:#111827;line-height:1}
+.metric-sub{font-size:11px;color:#9ca3af;margin-top:4px}
+.metric.warning .metric-value{color:#d97706}
+.metric.danger .metric-value{color:#dc2626}
+.metric.success .metric-value{color:#16a34a}
+
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:640px){.charts-row{grid-template-columns:1fr}}
+
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px}
+.card-title{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}
+
+.donut-wrap{display:flex;align-items:center;gap:20px}
+.legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#374151}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+.tl-wrap{display:flex;flex-direction:column;gap:8px}
+.tl-row{display:flex;align-items:center;gap:8px}
+.tl-label{font-size:11px;color:#6b7280;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.tl-track{flex:1;height:10px;background:#f3f4f6;border-radius:5px;position:relative;overflow:hidden}
+.tl-bar{height:100%;position:absolute;border-radius:5px}
+.tl-end{font-size:10px;color:#9ca3af;width:68px;text-align:right;flex-shrink:0}
+
+.table-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filters input,.filters select{font-size:13px;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;height:36px;outline:none}
+.filters input{flex:1;min-width:180px}
+.filters input:focus,.filters select:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;color:#6b7280;padding:8px 12px;border-bottom:1px solid #e5e7eb;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+td{padding:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap}
+.b-pem{background:#dbeafe;color:#1e40af}
+.b-non{background:#ede9fe;color:#5b21b6}
+.b-aktif{background:#dcfce7;color:#166534}
+.b-segera{background:#fef9c3;color:#854d0e}
+.b-expired{background:#fee2e2;color:#991b1b}
+.b-unknown{background:#f3f4f6;color:#6b7280}
+
+.mitra-name{font-weight:500;color:#111827;margin-bottom:3px;font-size:13px}
+.mitra-tentang{font-size:11px;color:#6b7280;line-height:1.5}
+.unit-text{font-size:11px;color:#9ca3af;line-height:1.5}
+
+.empty{text-align:center;padding:32px;color:#9ca3af;font-size:13px}
+.footer{text-align:center;padding:28px;font-size:12px;color:#9ca3af}
+.refresh-btn{background:none;border:1px solid #d1d5db;border-radius:6px;padding:5px 12px;font-size:12px;color:#6b7280;cursor:pointer}
+.refresh-btn:hover{background:#f9fafb;color:#374151}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">📋 Dashboard Perjanjian Kerja Sama</div>
+    <div class="header-sub">Direktorat Cegah Tangkal — BPOM RI</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span class="last-update" id="lastUpdate">Memuat...</span>
+    <button class="refresh-btn" onclick="init()">↻ Refresh</button>
+    <span class="header-badge">Tim Penggalangan</span>
+  </div>
+</div>
+
+<div class="main">
+  <div id="loadingState" class="loading">
+    <div class="spinner"></div>
+    <div>Mengambil data dari Google Sheets...</div>
+  </div>
+
+  <div id="errorState" style="display:none" class="error-box"></div>
+
+  <div id="dashboard" style="display:none">
+    <div id="alertBox" style="display:none" class="alert">
+      <div class="alert-icon">⚠️</div>
+      <div id="alertText"></div>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Sebaran kategori mitra</div>
+        <div class="donut-wrap">
+          <canvas id="donutChart" width="110" height="110" role="img" aria-label="Donut chart kategori mitra PKS"></canvas>
+          <div class="legend" id="donutLegend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Masa berlaku PKS</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;color:#6b7280">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#16a34a;flex-shrink:0"></span>Masih aktif</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#ca8a04;flex-shrink:0"></span>Segera berakhir</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#dc2626;flex-shrink:0"></span>Sudah berakhir</span>
+        </div>
+        <div class="tl-wrap" id="timelineWrap"></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="card-title">Daftar perjanjian kerja sama — <span id="rowCount" style="font-weight:400;text-transform:none;letter-spacing:0">0 data</span></div>
+      <div class="filters">
+        <input type="text" id="searchInput" placeholder="Cari nama mitra atau topik..." />
+        <select id="filterKat">
+          <option value="">Semua kategori</option>
+          <option value="Pemerintah">Pemerintah</option>
+          <option value="Non Pemerintah">Non Pemerintah</option>
+        </select>
+        <select id="filterExp">
+          <option value="">Semua status</option>
+          <option value="aktif">Masih aktif</option>
+          <option value="segera">Segera berakhir</option>
+          <option value="expired">Sudah berakhir</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:5%">No</th>
+              <th style="width:23%">Mitra kerja sama</th>
+              <th style="width:12%">Kategori</th>
+              <th style="width:12%">Tgl. TTD</th>
+              <th style="width:12%">Tgl. berakhir</th>
+              <th style="width:13%">Status</th>
+              <th style="width:23%">Unit kerja</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyMsg" class="empty" style="display:none">Tidak ada data yang sesuai filter.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Dashboard PKS · Direktorat Cegah Tangkal BPOM RI ·
+  Data diperbarui otomatis dari Google Sheets
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+
+// ================================================================
+//  ⚙️  KONFIGURASI — WAJIB DIISI SEBELUM DEPLOY
+// ================================================================
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlRN7AwcIy3vtHh6akQIb2k92FaSG01TNXyzBBSx0jsrxxDKc8Wk_h2xUWqP4xOaICnwSdzhTAf5mA/pub?gid=0&single=true&output=csv';
+//
+//  Cara mendapatkan URL:
+//  1. Buka Google Sheets kamu
+//  2. Klik File → Bagikan → Publikasikan ke web
+//  3. Pilih: Sheet1 | Format: Nilai yang dipisahkan koma (.csv)
+//  4. Klik "Publikasikan" → Salin URL yang muncul
+//  5. Tempel URL tersebut di atas (ganti tulisan GANTI_DENGAN...)
+// ================================================================
+
+// Nama kolom di Google Sheets (sesuaikan jika berbeda)
+const COL = {
+  NO:     'No',
+  NAMA:   'Mitra Kerja Sama',
+  TENTANG:'Tentang',
+  TTD:    'Tanggal Penandatanganan',
+  AKHIR:  'Tanggal Berakhir',
+  STATUS: 'Status',
+  KAT:    'Kategori',
+  UNIT:   'Unit Kerja'
+};
+
+const CAT_COLORS = {
+  'Pemerintah':     '#2563eb',
+  'Non Pemerintah': '#7c3aed',
+};
+const DEFAULT_COLORS = ['#059669','#d97706','#dc2626','#0891b2','#9333ea'];
+const EXP_COLORS = { aktif:'#16a34a', segera:'#ca8a04', expired:'#dc2626', unknown:'#9ca3af' };
+
+let donutInstance = null;
+
+// ── Date helpers ─────────────────────────────────────────────────
+function parseDate(str) {
+  if (!str || str.trim() === '') return null;
+  str = str.trim();
+
+  // Excel serial number
+  const num = parseFloat(str);
+  if (!isNaN(num) && str.match(/^\d+(\.\d+)?$/) && num > 40000) {
+    return new Date((num - 25569) * 86400000);
+  }
+
+  // DD/MM/YYYY
+  let m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+
+  // YYYY-MM-DD
+  m = str.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+const today = new Date();
+today.setHours(0,0,0,0);
+const sixMonths = new Date(today.getTime() + 183 * 86400000);
+
+function expStatus(d) {
+  if (!d) return 'unknown';
+  if (d < today) return 'expired';
+  if (d <= sixMonths) return 'segera';
+  return 'aktif';
+}
+
+// ── Fetch CSV from Google Sheets ─────────────────────────────────
+async function fetchData() {
+  if (SHEET_URL === 'GANTI_DENGAN_URL_CSV_GOOGLE_SHEETS_KAMU') {
+    throw new Error(
+      'URL Google Sheets belum diisi. Buka file HTML ini dengan teks editor, ' +
+      'cari variabel <code>SHEET_URL</code>, dan isi dengan URL CSV Google Sheets kamu.'
+    );
+  }
+  const res = await fetch(SHEET_URL + '&t=' + Date.now());
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' — pastikan Google Sheets sudah dipublikasikan ke web.');
+  const text = await res.text();
+  const result = Papa.parse(text, { header: true, skipEmptyLines: true, trimHeaders: true });
+  if (!result.data.length) throw new Error('Data kosong atau format CSV tidak sesuai.');
+  return result.data;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render(rows) {
+  const data = rows.map(r => {
+    const ttdDate   = parseDate(r[COL.TTD]);
+    const akhirDate = parseDate(r[COL.AKHIR]);
+    return {
+      no:       r[COL.NO]   || '',
+      nama:     r[COL.NAMA] || '',
+      tentang:  r[COL.TENTANG] || '',
+      ttdDate,
+      akhirDate,
+      status:   r[COL.STATUS] || '',
+      kat:      r[COL.KAT]    || '',
+      unit:     r[COL.UNIT]   || '',
+      expSt:    expStatus(akhirDate),
+    };
+  }).filter(d => d.nama.trim());
+
+  document.getElementById('lastUpdate').textContent =
+    'Diperbarui: ' + new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+  // ── Alert ────────
+  const kritisCount  = data.filter(d => d.expSt === 'segera').length;
+  const expiredCount = data.filter(d => d.expSt === 'expired').length;
+  if (kritisCount || expiredCount) {
+    const parts = [];
+    if (expiredCount)  parts.push(`${expiredCount} PKS sudah berakhir`);
+    if (kritisCount)   parts.push(`${kritisCount} PKS akan berakhir dalam 6 bulan ke depan`);
+    document.getElementById('alertText').innerHTML =
+      '<strong>Perhatian:</strong> ' + parts.join(' dan ') + '. Segera koordinasikan perpanjangan!';
+    document.getElementById('alertBox').style.display = 'flex';
+  }
+
+  // ── Metrics ─────
+  const total   = data.length;
+  const aktif   = data.filter(d => d.expSt === 'aktif').length;
+  const segera  = data.filter(d => d.expSt === 'segera').length;
+  const expired = data.filter(d => d.expSt === 'expired').length;
+  const pem     = data.filter(d => d.kat === 'Pemerintah').length;
+  const non     = data.filter(d => d.kat === 'Non Pemerintah').length;
+
+  const metricDefs = [
+    { label:'Total PKS',           val:total,   sub:'perjanjian kerja sama', cls:'' },
+    { label:'Masih aktif',         val:aktif,   sub:'>6 bulan ke depan',     cls:'success' },
+    { label:'Segera berakhir',     val:segera,  sub:'dalam 6 bulan',         cls: segera  ? 'warning' : '' },
+    { label:'Sudah berakhir',      val:expired, sub:'perlu diperbaharui',    cls: expired ? 'danger'  : '' },
+    { label:'Mitra pemerintah',    val:pem,     sub:'instansi pemerintah',   cls:'' },
+    { label:'Non pemerintah',      val:non,     sub:'asosiasi / swasta',     cls:'' },
+  ];
+  document.getElementById('metrics').innerHTML = metricDefs.map(m =>
+    `<div class="metric ${m.cls}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.val}</div>
+      <div class="metric-sub">${m.sub}</div>
+    </div>`
+  ).join('');
+
+  // ── Donut chart ──
+  const katMap = {};
+  data.forEach(d => { katMap[d.kat] = (katMap[d.kat]||0) + 1; });
+  const katKeys = Object.keys(katMap);
+  const katVals = katKeys.map(k => katMap[k]);
+  const katClrs = katKeys.map((k,i) => CAT_COLORS[k] || DEFAULT_COLORS[i % DEFAULT_COLORS.length]);
+
+  if (donutInstance) donutInstance.destroy();
+  donutInstance = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: katKeys,
+      datasets: [{ data: katVals, backgroundColor: katClrs, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: ctx => ` ${ctx.label}: ${ctx.parsed} PKS`
+      }}},
+      cutout: '60%'
+    }
+  });
+  document.getElementById('donutLegend').innerHTML = katKeys.map((k,i) =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${katClrs[i]}"></div>
+      <span>${k} (${katMap[k]})</span>
+    </div>`
+  ).join('');
+
+  // ── Timeline ────
+  const valid = data.filter(d => d.ttdDate && d.akhirDate);
+  if (valid.length) {
+    const minT = Math.min(...valid.map(d => d.ttdDate.getTime()));
+    const maxT = Math.max(...valid.map(d => d.akhirDate.getTime()));
+    const range = maxT - minT || 1;
+    document.getElementById('timelineWrap').innerHTML = valid.map(d => {
+      const left  = ((d.ttdDate.getTime()   - minT) / range * 100).toFixed(1);
+      const width = Math.max(((d.akhirDate.getTime() - d.ttdDate.getTime()) / range * 100), 3).toFixed(1);
+      const shortName = d.nama.length > 17 ? d.nama.substring(0,16)+'…' : d.nama;
+      return `<div class="tl-row">
+        <div class="tl-label" title="${d.nama}">${shortName}</div>
+        <div class="tl-track">
+          <div class="tl-bar" style="left:${left}%;width:${width}%;background:${EXP_COLORS[d.expSt]}"></div>
+        </div>
+        <div class="tl-end">${fmtDate(d.akhirDate)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Table ────────
+  const expLabel = { aktif:'Aktif', segera:'Segera berakhir', expired:'Sudah berakhir', unknown:'—' };
+  const expClass = { aktif:'b-aktif', segera:'b-segera', expired:'b-expired', unknown:'b-unknown' };
+
+  function renderTable() {
+    const q  = document.getElementById('searchInput').value.toLowerCase();
+    const fk = document.getElementById('filterKat').value;
+    const fe = document.getElementById('filterExp').value;
+    const filtered = data.filter(d =>
+      (!q  || d.nama.toLowerCase().includes(q) || d.tentang.toLowerCase().includes(q)) &&
+      (!fk || d.kat   === fk) &&
+      (!fe || d.expSt === fe)
+    );
+    document.getElementById('rowCount').textContent = filtered.length + ' data';
+    document.getElementById('emptyMsg').style.display = filtered.length ? 'none' : '';
+    document.getElementById('tableBody').innerHTML = filtered.map(d =>
+      `<tr>
+        <td style="font-size:12px;color:#9ca3af">${d.no}</td>
+        <td>
+          <div class="mitra-name">${d.nama}</div>
+          <div class="mitra-tentang">${d.tentang}</div>
+        </td>
+        <td><span class="badge ${d.kat==='Pemerintah'?'b-pem':'b-non'}">${d.kat||'—'}</span></td>
+        <td style="font-size:12px;color:#6b7280;white-space:nowrap">${fmtDate(d.ttdDate)}</td>
+        <td style="font-size:12px;color:#6b7280;white-space:nowrap">${fmtDate(d.akhirDate)}</td>
+        <td><span class="badge ${expClass[d.expSt]}">${expLabel[d.expSt]}</span></td>
+        <td class="unit-text">${d.unit}</td>
+      </tr>`
+    ).join('');
+  }
+
+  renderTable();
+  ['searchInput','filterKat','filterExp'].forEach(id =>
+    document.getElementById(id).addEventListener('input', renderTable)
+  );
+
+  document.getElementById('loadingState').style.display  = 'none';
+  document.getElementById('dashboard').style.display     = 'block';
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+async function init() {
+  document.getElementById('loadingState').style.display  = 'flex';
+  document.getElementById('loadingState').style.flexDirection = 'column';
+  document.getElementById('dashboard').style.display     = 'none';
+  document.getElementById('errorState').style.display    = 'none';
+  document.getElementById('alertBox').style.display      = 'none';
+
+  try {
+    const rows = await fetchData();
+    render(rows);
+  } catch(err) {
+    document.getElementById('loadingState').style.display = 'none';
+    const el = document.getElementById('errorState');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <strong>⚠️ Gagal memuat data</strong><br><br>
+      ${err.message}<br><br>
+      <strong>Langkah perbaikan:</strong><br>
+      1. Pastikan variabel <code>SHEET_URL</code> di dalam file HTML sudah diisi dengan URL CSV Google Sheets<br>
+      2. Pastikan Google Sheets sudah dipublikasikan ke web:<br>
+         &nbsp;&nbsp;&nbsp;File → Bagikan → Publikasikan ke web → Pilih format CSV → Publikasikan<br>
+      3. Pastikan koneksi internet aktif<br><br>
+      <button class="refresh-btn" onclick="init()" style="margin-top:4px">↻ Coba lagi</button>
+    `;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
