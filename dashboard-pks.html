@@ -253,7 +253,7 @@ function expStatus(d) {
 
 // ── Fetch CSV from Google Sheets ─────────────────────────────────
 async function fetchData() {
-  if (SHEET_URL === 'GANTI_DENGAN_URL_CSV_GOOGLE_SHEETS_KAMU') {
+  if (SHEET_URL === 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlRN7AwcIy3vtHh6akQIb2k92FaSG01TNXyzBBSx0jsrxxDKc8Wk_h2xUWqP4xOaICnwSdzhTAf5mA/pub?gid=0&single=true&output=csv') {
     throw new Error(
       'URL Google Sheets belum diisi. Buka file HTML ini dengan teks editor, ' +
       'cari variabel <code>SHEET_URL</code>, dan isi dengan URL CSV Google Sheets kamu.'
